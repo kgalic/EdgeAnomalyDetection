@@ -1,0 +1,99 @@
+{
+  "modulesContent": {
+    "$edgeAgent": {
+      "properties.desired": {
+        "schemaVersion": "1.0",
+        "runtime": {
+          "type": "docker",
+          "settings": {
+            "minDockerVersion": "v1.25",
+            "loggingOptions": "",
+            "registryCredentials": {
+              "weatherstationregistry": {
+                "username": "weatherstationregistry",
+                "password": "EAD4dT7G6uV0EZHU7mfkla1uzilS=jF9",
+                "address": "weatherstationregistry.azurecr.io"
+              }
+            }
+          }
+        },
+        "systemModules": {
+          "edgeAgent": {
+            "type": "docker",
+            "settings": {
+              "image": "mcr.microsoft.com/azureiotedge-agent:1.0",
+              "createOptions": "{}"
+            }
+          },
+          "edgeHub": {
+            "type": "docker",
+            "status": "running",
+            "restartPolicy": "always",
+            "settings": {
+              "image": "mcr.microsoft.com/azureiotedge-hub:1.0",
+              "createOptions": "{\"HostConfig\":{\"PortBindings\":{\"5671/tcp\":[{\"HostPort\":\"5671\"}],\"8883/tcp\":[{\"HostPort\":\"8883\"}],\"443/tcp\":[{\"HostPort\":\"443\"}]}}}"
+            }
+          }
+        },
+        "modules": {
+          "opcpublisher": {
+            "version": "1.0",
+            "type": "docker",
+            "status": "running",
+            "restartPolicy": "always",
+            "settings": {
+              "image": "weatherstationregistry.azurecr.io/opcpublisher:latest",
+              "createOptions": "{\"Hostname\":\"publisher\",\"Cmd\":[\"--pf=/appdata/publishednodes.json\",\"--ns=true\",\"--fd=true\",\"--aa\"],\"HostConfig\":{\"Binds\":[\"C:/Test:/appdata\"]}}"
+            }
+          },
+          "EdgeAnomalyDetectionAnalyticsService": {
+            "type": "docker",
+            "settings": {
+              "image": "mcr.microsoft.com/azure-stream-analytics/azureiotedge:1.0.1",
+              "createOptions": ""
+            },
+            "version": "1.0",
+            "env": {
+              "PlanId": {
+                "value": "stream-analytics-on-iot-edge"
+              }
+            },
+            "status": "running",
+            "restartPolicy": "always"
+          },
+          "AnomalyHandlingModule": {
+            "version": "1.0",
+            "type": "docker",
+            "status": "running",
+            "restartPolicy": "always",
+            "settings": {
+              "image": "weatherstationregistry.azurecr.io/anomalyhandlingmodule:0.0.1-amd64",
+              "createOptions": "{}"
+            }
+          }
+        }
+      }
+    },
+    "$edgeHub": {
+      "properties.desired": {
+        "schemaVersion": "1.0",
+        "routes": {
+          "telemetryToAsa": "FROM /messages/modules/opcpublisher/*  INTO BrokeredEndpoint(\"/modules/EdgeAnomalyDetectionAnalyticsService/inputs/input\")",
+          "ASAToAnomalyHandlingModule": "FROM /messages/modules/EdgeAnomalyDetectionAnalyticsService/outputs/* INTO BrokeredEndpoint(\"/modules/AnomalyHandlingModule/inputs/input1\")",
+          "AnomalyHandlingModuleToIoTHub": "FROM /messages/modules/AnomalyHandlingModule/outputs/* INTO $upstream"
+        },
+        "storeAndForwardConfiguration": {
+          "timeToLiveSecs": 7200
+        }
+      }
+    },
+    "EdgeAnomalyDetectionAnalyticsService": {
+      "properties.desired": {
+        "ASAJobInfo": "https://weatherstorageacc.blob.core.windows.net/amomalystreamanalytics/ASAEdgeJobs/ac55d883-689c-48ae-8084-82a03dc2537d/db7e1f38-0c65-45aa-8a35-abb0d90aaacb/ASAEdgeJobDefinition.zip?sv=2018-03-28&sr=b&sig=eIG5qDVCVGPAMx12L6RB3vDJIwUUfbhEUdGwQYnm0ak%3D&st=2019-03-28T15%3A25%3A47Z&se=2022-03-28T15%3A35%3A47Z&sp=r",
+        "ASAJobResourceId": "/subscriptions/e4da59ca-11b0-454e-a89a-cd711dea9094/resourceGroups/KresimirWeatherStation/providers/Microsoft.StreamAnalytics/streamingjobs/EdgeAnomalyDetectionAnalyticsService",
+        "ASAJobEtag": "abf44e5d-33d7-408b-aa83-ed779450d3e1",
+        "PublishTimestamp": "3/28/2019 3:35:47 PM"
+      }
+    }
+  }
+}

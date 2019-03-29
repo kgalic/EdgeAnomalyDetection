@@ -1,0 +1,134 @@
+{
+  "$schema-template": "1.0.0",
+  "modulesContent": {
+    "$edgeAgent": {
+      "properties.desired": {
+        "schemaVersion": "1.0",
+        "runtime": {
+          "type": "docker",
+          "settings": {
+            "minDockerVersion": "v1.25",
+            "loggingOptions": "",
+            "registryCredentials": {
+              "weatherstationregistry": {
+                "username": "$CONTAINER_REGISTRY_USERNAME_weatherstationregistry",
+                "password": "$CONTAINER_REGISTRY_PASSWORD_weatherstationregistry",
+                "address": "weatherstationregistry.azurecr.io"
+              }
+            }
+          }
+        },
+        "systemModules": {
+          "edgeAgent": {
+            "type": "docker",
+            "settings": {
+              "image": "mcr.microsoft.com/azureiotedge-agent:1.0",
+              "createOptions": {}
+            }
+          },
+          "edgeHub": {
+            "type": "docker",
+            "status": "running",
+            "restartPolicy": "always",
+            "settings": {
+              "image": "mcr.microsoft.com/azureiotedge-hub:1.0",
+              "createOptions": {
+                "HostConfig": {
+                  "PortBindings": {
+                    "5671/tcp": [
+                      {
+                        "HostPort": "5671"
+                      }
+                    ],
+                    "8883/tcp": [
+                      {
+                        "HostPort": "8883"
+                      }
+                    ],
+                    "443/tcp": [
+                      {
+                        "HostPort": "443"
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "modules": {
+          "opcpublisher": {
+            "version": "1.0",
+            "type": "docker",
+            "status": "running",
+            "restartPolicy": "always",
+            "settings": {
+              "image": "weatherstationregistry.azurecr.io/opcpublisher:latest",
+              "createOptions": 
+              {
+                "Hostname": "publisher",
+                "Cmd": [
+                    "--pf=/appdata/publishednodes.json",
+                    "--ns=true",
+                    "--fd=true",
+                    "--aa"
+                ],
+                "HostConfig": {
+                  "Binds": [
+                      "C:/Test:/appdata"
+                  ]
+                }
+              }
+            }
+          },
+          "EdgeAnomalyDetectionAnalyticsService": {
+            "type": "docker",
+            "settings": {
+                "image": "mcr.microsoft.com/azure-stream-analytics/azureiotedge:1.0.1",
+                "createOptions": ""
+            },
+            "version": "1.0",
+            "env": {
+                "PlanId": {
+                    "value": "stream-analytics-on-iot-edge"
+                }
+            },
+            "status": "running",
+            "restartPolicy": "always"
+          },
+          "AnomalyHandlingModule": {
+            "version": "1.0",
+            "type": "docker",
+            "status": "running",
+            "restartPolicy": "always",
+            "settings": {
+              "image": "${MODULES.AnomalyHandlingModule}",
+              "createOptions": {}
+            }
+          }
+        }
+      }
+    },
+    "$edgeHub": {
+      "properties.desired": {
+        "schemaVersion": "1.0",
+        "routes": {
+          "telemetryToAsa": "FROM /messages/modules/opcpublisher/*  INTO BrokeredEndpoint(\"/modules/EdgeAnomalyDetectionAnalyticsService/inputs/input\")",
+          "ASAToAnomalyHandlingModule": "FROM /messages/modules/EdgeAnomalyDetectionAnalyticsService/outputs/* INTO BrokeredEndpoint(\"/modules/AnomalyHandlingModule/inputs/input1\")",
+          "AnomalyHandlingModuleToIoTHub": "FROM /messages/modules/AnomalyHandlingModule/outputs/* INTO $upstream"
+        },
+        "storeAndForwardConfiguration": {
+          "timeToLiveSecs": 7200
+        }
+      }
+    },
+    "EdgeAnomalyDetectionAnalyticsService": {
+      "properties.desired": {
+        "ASAJobInfo": "sas_to_stream_analytics_job_zip_file",
+        "ASAJobResourceId": "_resource_information_.../streamingjobs/EdgeAnomalyDetectionAnalyticsService",
+        "ASAJobEtag": "22fd8313-2ee5-4f62-b13c-cbe37d5b1a98",
+        "PublishTimestamp": "3/29/2019 10:57:25 AM"
+      }
+    }
+  }
+}

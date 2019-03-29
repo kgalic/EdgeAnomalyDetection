@@ -1,0 +1,99 @@
+{
+  "modulesContent": {
+    "$edgeAgent": {
+      "properties.desired": {
+        "schemaVersion": "1.0",
+        "runtime": {
+          "type": "docker",
+          "settings": {
+            "minDockerVersion": "v1.25",
+            "loggingOptions": "",
+            "registryCredentials": {
+              "weatherstationregistry": {
+                "username": "weatherstationregistry",
+                "password": "EAD4dT7G6uV0EZHU7mfkla1uzilS=jF9",
+                "address": "weatherstationregistry.azurecr.io"
+              }
+            }
+          }
+        },
+        "systemModules": {
+          "edgeAgent": {
+            "type": "docker",
+            "settings": {
+              "image": "mcr.microsoft.com/azureiotedge-agent:1.0",
+              "createOptions": "{}"
+            }
+          },
+          "edgeHub": {
+            "type": "docker",
+            "status": "running",
+            "restartPolicy": "always",
+            "settings": {
+              "image": "mcr.microsoft.com/azureiotedge-hub:1.0",
+              "createOptions": "{\"HostConfig\":{\"PortBindings\":{\"5671/tcp\":[{\"HostPort\":\"5671\"}],\"8883/tcp\":[{\"HostPort\":\"8883\"}],\"443/tcp\":[{\"HostPort\":\"443\"}]}}}"
+            }
+          }
+        },
+        "modules": {
+          "opcpublisher": {
+            "version": "1.0",
+            "type": "docker",
+            "status": "running",
+            "restartPolicy": "always",
+            "settings": {
+              "image": "weatherstationregistry.azurecr.io/opcpublisher:latest",
+              "createOptions": "{\"Hostname\":\"publisher\",\"Cmd\":[\"--pf=/appdata/publishednodes.json\",\"--ns=true\",\"--fd=true\",\"--aa\"],\"HostConfig\":{\"Binds\":[\"C:/Test:/appdata\"]}}"
+            }
+          },
+          "EdgeAnomalyDetectionAnalyticsService": {
+            "type": "docker",
+            "settings": {
+              "image": "mcr.microsoft.com/azure-stream-analytics/azureiotedge:1.0.1",
+              "createOptions": ""
+            },
+            "version": "1.0",
+            "env": {
+              "PlanId": {
+                "value": "stream-analytics-on-iot-edge"
+              }
+            },
+            "status": "running",
+            "restartPolicy": "always"
+          },
+          "AnomalyHandlingModule": {
+            "version": "1.0",
+            "type": "docker",
+            "status": "running",
+            "restartPolicy": "always",
+            "settings": {
+              "image": "weatherstationregistry.azurecr.io/anomalyhandlingmodule:0.0.1-amd64",
+              "createOptions": "{}"
+            }
+          }
+        }
+      }
+    },
+    "$edgeHub": {
+      "properties.desired": {
+        "schemaVersion": "1.0",
+        "routes": {
+          "telemetryToAsa": "FROM /messages/modules/opcpublisher/*  INTO BrokeredEndpoint(\"/modules/EdgeAnomalyDetectionAnalyticsService/inputs/input\")",
+          "ASAToAnomalyHandlingModule": "FROM /messages/modules/EdgeAnomalyDetectionAnalyticsService/outputs/* INTO BrokeredEndpoint(\"/modules/AnomalyHandlingModule/inputs/input1\")",
+          "AnomalyHandlingModuleToIoTHub": "FROM /messages/modules/AnomalyHandlingModule/outputs/* INTO $upstream"
+        },
+        "storeAndForwardConfiguration": {
+          "timeToLiveSecs": 7200
+        }
+      }
+    },
+    "EdgeAnomalyDetectionAnalyticsService": {
+      "properties.desired": {
+        "ASAJobInfo": "https://weatherstorageacc.blob.core.windows.net/anomalyjobsasa/ASAEdgeJobs/ac55d883-689c-48ae-8084-82a03dc2537d/71f2f5e2-4184-4e11-a023-52b64fc64875/ASAEdgeJobDefinition.zip?sv=2018-03-28&sr=b&sig=RjxvejhvaobGSpQbnaOqHB0IzaIvFrpK4Z5KWyMwK3o%3D&st=2019-03-29T10%3A47%3A25Z&se=2022-03-29T10%3A57%3A25Z&sp=r",
+        "ASAJobResourceId": "/subscriptions/e4da59ca-11b0-454e-a89a-cd711dea9094/resourceGroups/KresimirWeatherStation/providers/Microsoft.StreamAnalytics/streamingjobs/EdgeAnomalyDetectionAnalyticsService",
+        "ASAJobEtag": "22fd8313-2ee5-4f62-b13c-cbe37d5b1a98",
+        "PublishTimestamp": "3/29/2019 10:57:25 AM"
+      }
+    }
+  }
+}
